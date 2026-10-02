@@ -1,4 +1,4 @@
-function [med_pt, lat_pt, n, rim_z, med_n, lat_n, idxs] = find_rims(tib, kneeside, long_axis)
+function [med_pt, lat_pt, n, rim_z, med_n, lat_n, idxs] = find_rims(tib, kneeside, long_axis, cns)
 %% Finding plateau rims
 % Adapted from slopeMedPlat.m and slopeLatPlat.m
 % "S:\BiomechanicsResearch\groupImhauser\TibialSlopesKneeKinematics\Code\Consolidate"
@@ -52,8 +52,8 @@ med_prct_val = prctile(med_pts(:,2), 90);
 med_pt = med_pts(med_idx, :);
 
 % return normal to each plateau
-[med_n, ~, ~] = affine_fit(med_pts);
-[lat_n, ~, ~] = affine_fit(lat_pts);
+[med_n, med_plane, mp] = affine_fit(med_pts);
+[lat_n, lat_plane, lp] = affine_fit(lat_pts);
 
 % return indices for each plateau's points (need to account for floating
 % point precision errors)
@@ -75,37 +75,95 @@ for i = 1:M
 end
 
 
-% % plotting final set of rim points found
-% figure;
-% plot3(og_tib(:,1), og_tib(:,2), og_tib(:,3), '.', 'MarkerSize', 0.3); hold on
-% plot3(lat_pts(:,1), lat_pts(:,2), lat_pts(:,3), 'r.', 'MarkerSize', 20);
-% plot3(med_pts(:,1), med_pts(:,2), med_pts(:,3), 'r.', 'MarkerSize', 20);
-% plot3(lat_pt(:,1), lat_pt(:,2), lat_pt(:,3), 'g.', 'MarkerSize', 20);
-% plot3(med_pt(:,1), med_pt(:,2), med_pt(:,3), 'g.', 'MarkerSize', 20);
-% xlabel('X'); ylabel('Y'); zlabel('Z');
-% title('Final Rim Points');
+% plotting final set of rim points found
+figure;
+plot3(og_tib(:,1), og_tib(:,2), og_tib(:,3), '.', 'MarkerSize', 0.3); hold on
+plot3(lat_pts(:,1), lat_pts(:,2), lat_pts(:,3), 'r.', 'MarkerSize', 20);
+plot3(med_pts(:,1), med_pts(:,2), med_pts(:,3), 'r.', 'MarkerSize', 20);
+plot3(lat_pt(:,1), lat_pt(:,2), lat_pt(:,3), 'g.', 'MarkerSize', 20);
+plot3(med_pt(:,1), med_pt(:,2), med_pt(:,3), 'g.', 'MarkerSize', 20);
+xlabel('X'); ylabel('Y'); zlabel('Z');
+title('Final Rim Points');
 
 % plotting rim points and plane fit to them w/ normal vector
-% figure;
-% plot3(og_tib(:,1), og_tib(:,2), og_tib(:,3), '.', 'MarkerSize', 0.3); hold on
-% plot3(med_pts(:,1), med_pts(:,2), med_pts(:,3), 'r.', 'MarkerSize', 20);
-% plot3(lat_pts(:,1), lat_pts(:,2), lat_pts(:,3), 'r.', 'MarkerSize', 20);
-% plot3(lat_pt(:,1), lat_pt(:,2), lat_pt(:,3), 'g.', 'MarkerSize', 20);
-% plot3(med_pt(:,1), med_pt(:,2), med_pt(:,3), 'g.', 'MarkerSize', 20);
-% plot3(mp(1), mp(2), mp(3), 'b.'); %center of plane
-% quiver3(mp(1), mp(2), mp(3), n(1), n(2), n(3), 20, 'b', 'LineWidth', 3); %normal vector
-% 
-% % plot best fit plane
-% [S1,S2] = meshgrid([-30 0 30]);
-% 
-% X = mp(1)+[S1(:) S2(:)]*med_plane(1,:)';
-% Y = mp(2)+[S1(:) S2(:)]*med_plane(2,:)';
-% Z = mp(3)+[S1(:) S2(:)]*med_plane(3,:)';
-% 
-% surf(reshape(X,3,3),reshape(Y,3,3),reshape(Z,3,3),'facecolor','blue','facealpha',0.5);
-% xlabel('X'); ylabel('Y'); zlabel('Z');
-% % title('Medial Rim and Best-Fit Plane');
-% title('Plateau Rims and Best-Fit Plane');
+figure;
+plot3(og_tib(:,1), og_tib(:,2), og_tib(:,3), '.', 'MarkerSize', 0.3); hold on
+plot3(med_pts(:,1), med_pts(:,2), med_pts(:,3), 'r.', 'MarkerSize', 20);
+plot3(lat_pts(:,1), lat_pts(:,2), lat_pts(:,3), 'r.', 'MarkerSize', 20);
+plot3(lat_pt(:,1), lat_pt(:,2), lat_pt(:,3), 'g.', 'MarkerSize', 20);
+plot3(med_pt(:,1), med_pt(:,2), med_pt(:,3), 'g.', 'MarkerSize', 20);
+plot3(mp(1), mp(2), mp(3), 'b.'); %center of plane
+quiver3(mp(1), mp(2), mp(3), n(1), n(2), n(3), 20, 'b', 'LineWidth', 3); %normal vector
+
+% plot best fit plane
+[S1,S2] = meshgrid([-30 0 30]);
+
+X = mp(1)+[S1(:) S2(:)]*med_plane(1,:)';
+Y = mp(2)+[S1(:) S2(:)]*med_plane(2,:)';
+Z = mp(3)+[S1(:) S2(:)]*med_plane(3,:)';
+
+surf(reshape(X,3,3),reshape(Y,3,3),reshape(Z,3,3),'facecolor','blue','facealpha',0.5);
+xlabel('X'); ylabel('Y'); zlabel('Z');
+% title('Medial Rim and Best-Fit Plane');
+title('Plateau Rims and Best-Fit Plane');
+
+% plotting final plane on tibia
+figure; hold on;
+patch('Faces', cns, 'Vertices', og_tib, ...
+    'FaceColor', [0.7 0.7 0.7], 'EdgeColor', [0.6 0.6 0.6], 'FaceAlpha', 0.3, 'EdgeAlpha', 0.3);
+
+% best fit plane
+plot3(lat_pts(:,1), lat_pts(:,2), lat_pts(:,3), 'r.', 'MarkerSize', 20);
+
+plot3(lp(1), lp(2), lp(3), 'b.'); %center of plane
+quiver3(lp(1), lp(2), lp(3), lat_n(1), lat_n(2), lat_n(3), 20, 'b', 'LineWidth', 5); %normal vector
+
+% plot best fit plane
+[S1,S2] = meshgrid([-20 0 20]);
+
+X = lp(1)+[S1(:) S2(:)]*lat_plane(1,:)';
+Y = lp(2)+[S1(:) S2(:)]*lat_plane(2,:)';
+Z = lp(3)+[S1(:) S2(:)]*lat_plane(3,:)';
+
+surf(reshape(X,3,3),reshape(Y,3,3),reshape(Z,3,3),'facecolor','blue','facealpha',0.5);
+
+% SI axis (v3), drawn from the origin
+L = 20;
+v3 = [0;0;1];
+quiver3(lp(1), lp(2), lp(3), v3(1)*L, v3(2)*L, v3(3)*L, 0, ...
+    'Color', 'k', 'LineWidth', 5);
+xlabel('X (ML)'); ylabel('Y (AP)'); zlabel('Z (SI)');
+title('lateral plateau slope');
+view(3); rotate3d on; lighting phong;
+
+% medial
+figure; hold on;
+patch('Faces', cns, 'Vertices', og_tib, ...
+    'FaceColor', [0.7 0.7 0.7], 'EdgeColor', [0.6 0.6 0.6], 'FaceAlpha', 0.3, 'EdgeAlpha', 0.3);
+
+% best fit plane
+plot3(med_pts(:,1), med_pts(:,2), med_pts(:,3), 'r.', 'MarkerSize', 20);
+
+plot3(mp(1), mp(2), mp(3), 'b.'); %center of plane
+quiver3(mp(1), mp(2), mp(3), med_n(1), med_n(2), med_n(3), 20, 'b', 'LineWidth', 5); %normal vector
+
+% plot best fit plane
+[S1,S2] = meshgrid([-25 0 25]);
+
+X = mp(1)+[S1(:) S2(:)]*med_plane(1,:)';
+Y = mp(2)+[S1(:) S2(:)]*med_plane(2,:)';
+Z = mp(3)+[S1(:) S2(:)]*med_plane(3,:)';
+
+surf(reshape(X,3,3),reshape(Y,3,3),reshape(Z,3,3),'facecolor','blue','facealpha',0.5);
+
+% SI axis (v3), drawn from the origin
+L = 20;
+v3 = [0;0;1];
+quiver3(mp(1), mp(2), mp(3), v3(1)*L, v3(2)*L, v3(3)*L, 0, ...
+    'Color', 'k', 'LineWidth', 5);
+xlabel('X (ML)'); ylabel('Y (AP)'); zlabel('Z (SI)');
+title('medial plateau slope');
+view(3); rotate3d on; lighting phong;
 
 end
 

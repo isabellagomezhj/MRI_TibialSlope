@@ -62,7 +62,7 @@ function smoothed_pts = bilateral_mesh_denoising(FV, sigma_c, sigma_s, iteration
         % Volume preservation
         displacements = new_pts - smoothed_pts;
         for v = 1:size(FV.vertices, 1)
-            new_pts(v, :) = new_pts(v, :) + alpha * dot(displacements(v, :), normals(v, :)) * normals(v, :);
+            new_pts(v, :) = new_pts(v, :) - alpha * dot(displacements(v, :), normals(v, :)) * normals(v, :);
         end       
 
         % Update vertices for next iteration

@@ -1,4 +1,4 @@
-%% Calculate lateral and medial tibial plateau slope from short knee MRI
+%% Calculate lateral and medial tibial plateau slope from knee MRI
 % Inputs:
 % fld = path to tibia .iv file
 % NOTE: the tibia should roughly be aligned with the Z-axis 
@@ -14,9 +14,9 @@
 
 %% User inputs
 % path to tibia .iv file
-fld = "S:\BiomechanicsResearch\groupImhauser\Modeling\UVM_test\Data_Reduced\FemalePair7\Case\model_inputs\Geometries\Tib_high_density.iv";
+fld = "S:\BiomechanicsResearch\groupImhauser\Modeling\UVM_test\Data_Reduced\FemalePair1\Case\model_inputs\Geometries\Tib_high_density.iv";
 kneeside = 'R';
-plt_figs = 0;
+plt_figs = 1;
 
 %% Main script
 slopes = zeros(1,3);
@@ -24,8 +24,14 @@ slopes = zeros(1,3);
 % auto ACS calculation
 tibacs = getTibiaACSv7(fld, kneeside);
 
+% rotate the tibial CS around MRI x-axis to correct it
+rot_tibacs = rodrigues_rot(tibacs(1:3,1:3)', [1,0,0], deg2rad(4.2)); 
+rot_tibacs = [rot_tibacs' tibacs(1:3,4); 0 0 0 1];
+tibacs = rot_tibacs;
+
 % import tibia points
-pts = read_vrml_fast(fld);
+[pts, cns] = read_vrml_fast(fld);
+cns = cns(:, 1:3) + 1;
 
 % find plateau normal
 [mri_sem_ax, t, ~, ~, ~] = ellipse_ax(pts, 5, 100);
@@ -35,8 +41,8 @@ pts = read_vrml_fast(fld);
 temp_locpts = inv(t)*[pts'; ones(1,size(pts,1))];
 temp_locpts = temp_locpts(1:3,:)';
 
-% find vector normal to full plateau, medial and lateral plateaus
-[~, ~, n, ~, med_n, lat_n] = find_rims(temp_locpts, kneeside, mri_sem_ax);
+%% find vector normal to full plateau, medial and lateral plateaus
+[~, ~, n, ~, med_n, lat_n] = find_rims(temp_locpts, kneeside, mri_sem_ax, cns);
 
 % transform back to MRI coordinates
 n_mri = t(1:3,1:3) * n;

@@ -74,9 +74,9 @@ FV.faces = cns;
 
 % smoothed_pts = taubin_smooth(FV, 0.5, -0.5, 3);
 
-sigma_c = 50;  % Controls spatial smoothness
+sigma_c = 5;  % Controls spatial smoothness
 sigma_s = 0.5;  % Controls feature preservation
-iterations = 15;  % Number of smoothing passes
+iterations = 5;  % Number of smoothing passes
 
 smoothed_pts = bilateral_mesh_denoising(FV, sigma_c, sigma_s, iterations);
 
@@ -207,7 +207,53 @@ if plot_figs == 1
     plot3(tpt_rot(1), tpt_rot(2), tpt_rot(3), '. y', 'MarkerSize', 30);
     plot3(vertring(:,1), vertring(:,2), vertring(:,3), '. k');
     plot3(vertring2(:,1), vertring2(:,2), vertring2(:,3), '. k');
+
+    %% Final figure: SI axis definition
+    keep_plateau = FV.vertices(:,3) > cut;      % first block of the concatenation
+    keep_shaft   = smoothed_pts(:,3) < cut;     % second block
+
+    idx_map = zeros(size(FV.vertices,1), 1);
+    idx_map(keep_plateau) = 1:nnz(keep_plateau);
+    idx_map(keep_shaft)   = nnz(keep_plateau) + (1:nnz(keep_shaft));
+
+    cns_rot = idx_map(cns);
+    cns_rot = cns_rot(all(cns_rot > 0, 2), :);  % drop faces touching lost vertices
+
+    % split the surface: faces fully posterior to tub_tpt are retained,
+    % everything else (incl. faces straddling the cut) is the excluded tubercle
+    is_notub    = all(notub_idx(cns_rot), 2);
+    notub_faces = cns_rot(is_notub, :);
+    tub_faces   = cns_rot(~is_notub, :);
+
+    figure; hold on;
+    % excluded tubercle region
+    h_tub = patch('Faces', tub_faces, 'Vertices', rot_pts, ...
+        'FaceColor', [0.31 0.51 0.62], 'EdgeColor', [0.31 0.51 0.62], 'FaceAlpha', 0.1, 'EdgeAlpha', 0.5);
+    % retained (posterior) region after tubercle exclusion
+    h_notub = patch('Faces', notub_faces, 'Vertices', rot_pts, ...
+        'FaceColor', [0.7 0.7 0.7], 'EdgeColor', [0.6 0.6 0.6], 'FaceAlpha', 0.3, 'EdgeAlpha', 0.3);
+    % rings used to define the SI axis
+    h_mid = plot3(vertring2(:,1), vertring2(:,2), vertring2(:,3), '.', ...
+        'Color', [0 0.8 0.1], 'MarkerSize', 6);
+    h_bot = plot3(vertring(:,1), vertring(:,2), vertring(:,3), '.', ...
+        'Color', [0.9 0.1 0.1], 'MarkerSize', 6);
+    % ring centroids
+    plot3(mpt_rot(1), mpt_rot(2), mpt_rot(3), '.', 'Color', [0 0.6 0.1], 'MarkerSize', 40);
+    plot3(bpt_rot(1), bpt_rot(2), bpt_rot(3), '.', 'Color', [0.7 0 0], 'MarkerSize', 40);
+    % SI axis (v3), drawn from the bottom centroid
+    L = 12 * norm(mpt_rot - bpt_rot);
+    h_ax = quiver3(bpt_rot(1), bpt_rot(2), bpt_rot(3), ...
+        v3(1)*L, v3(2)*L, v3(3)*L, 0, ...
+        'Color', 'k', 'LineWidth', 2);
+    xlabel('X (ML)'); ylabel('Y (AP)'); zlabel('Z (SI)');
+    % legend([h_tub h_notub h_mid h_bot h_ax], ...
+    %     {'tubercle (excluded)', 'retained', 'mid ring', 'bottom ring', 'SI axis (v3)'}, ...
+    %     'Location', 'best');
+    title('SI axis definition');
+    view(3); rotate3d on; lighting phong;
 end
+
+
 
 % fprintf ('Plateau normal: %f, %f, %f | Post. trace ang: %f | Tub pt: %f, %f, %f | SI lower pt: %f, %f, %f | SI mid pt: %f, %f, %f \n', n(1), n(2), n(3), ang, tub_tpt(1), tub_tpt(2), tub_tpt(3), bpt_rot(1), bpt_rot(2), bpt_rot(3), mpt_rot(1), mpt_rot(2), mpt_rot(3));
 
